@@ -17,7 +17,8 @@ import {
   Grid3X3,
   Maximize2,
   Volume2,
-  VolumeX
+  VolumeX,
+  Camera
 } from 'lucide-react';
 
 const RoomPage = () => {
@@ -29,11 +30,16 @@ const RoomPage = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const [participantCount, setParticipantCount] = useState(2);
   const [chatMessages, setChatMessages] = useState([
-    { id: 1, sender: 'John Doe', message: 'Hello everyone!', time: '10:30 AM' },
+    { id: 1, sender: 'Salman', message: 'Hello!', time: '10:30 AM' },
     { id: 2, sender: 'You', message: 'Hi there!', time: '10:31 AM' }
   ]);
   const [newMessage, setNewMessage] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const chatContainerRef = useRef(null);
+
+  const [roomId, setRoomId] = useState(''); // Assume roomId is set elsewhere (e.g., via props or URL)
+  const [userName, setUserName] = useState('You'); // Assume user name is set (e.g., via auth or input)
 
 
   const [showPreview, setShowPreview] = useState(true);
@@ -99,7 +105,14 @@ const RoomPage = () => {
 
   const endCall = () => {
     setIsConnected(false);
-    // Handle call ending logic
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    if (peer.peer) {
+      peer.peer.close();
+    }
+    socket.emit('call:end', { to: remoteSocketId });
+    setRemoteStream(null);
   };
 
   const sendMessage = () => {
@@ -126,7 +139,8 @@ const RoomPage = () => {
 
   const handleCallUser = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true //audio:true
+      video: true,
+      audio:true
     });
     const offer = await peer.getOffer();
     socket.emit("user:call", { to: remoteSocketId, offer });
@@ -137,7 +151,7 @@ const RoomPage = () => {
   const handleIncommingCall = useCallback(async ({ from, offer }) => {
     setRemoteSocketId(from);
     const stream = await navigator.mediaDevices.getUserMedia({
-      //audio: true,
+      audio: true,
       video: true,
     });
     setMyStream(stream);
@@ -199,17 +213,33 @@ const RoomPage = () => {
     [socket]
   );
 
-  const handleNegoNeedFinal = useCallback(async ({ ans }) => {
-    await peer.setLocalDescription(ans);
-  }, []);
+  const handleNegoNeedFinal = useCallback(
+    async ({ ans }) => {
+      try {
+        await peer.setLocalDescription(ans);
+      } catch (err) {
+        console.error('Negotiation final failed:', err);
+      }
+    },
+    [peer]
+  );
+
 
   useEffect(() => {
-    peer.peer.addEventListener("track", async (ev) => {
-      const remoteStream = ev.streams;
-      console.log("GOT TRACKS!!");
-      setRemoteStream(remoteStream[0]);
+    peer.peer.addEventListener('track', (ev) => {
+      const remoteStream = ev.streams[0];
+      console.log('Received remote tracks:', remoteStream);
+      setRemoteStream(remoteStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = remoteStream;
+      }
     });
-  }, []);
+
+    peer.peer.addEventListener('negotiationneeded', handleNegoNeeded);
+    return () => {
+      peer.peer.removeEventListener('negotiationneeded', handleNegoNeeded);
+    };
+  }, [handleNegoNeeded, peer]);
 
   useEffect(() => {
     socket.on("user:joined", handleUserJoined);
@@ -218,6 +248,70 @@ const RoomPage = () => {
     socket.on("peer:nego:needed", handleNegoNeedIncomming);
     socket.on("peer:nego:final", handleNegoNeedFinal);
     //socket.on("call:end", handleCallEnd); // Register the call:end event
+    socket.on('call:end', () => {
+      setRemoteStream(null);
+      setRemoteSocketId(null);
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      setIsConnected(false);
+    });
+
+  
+
+  
+
+  // Auto-scroll to latest message
+  // useEffect(() => {
+  //   if (chatContainerRef.current) {
+  //     chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  //   }
+  // }, [chatMessages]);
+
+  // Handle receiving chat messages
+  // const handleReceiveMessage = useCallback(
+  //   (message) => {
+  //     setChatMessages((prevMessages) => [...prevMessages, message]);
+  //   },
+  //   []
+  // );
+
+  // Socket event listeners
+  // useEffect(() => {
+  //   socket.on('chat:receive', handleReceiveMessage);
+  //   socket.on('user:joined', ({ name }) => {
+  //     setParticipantCount((prev) => prev + 1);
+  //   });
+  //   socket.on('room:join', (data) => {
+  //     setRoomId(data.room); // Set roomId when joining
+  //   });
+
+  //   return () => {
+  //     socket.off('chat:receive', handleReceiveMessage);
+  //     socket.off('user:joined');
+  //     socket.off('room:join');
+  //   };
+  // }, [socket, handleReceiveMessage]);
+
+  // Send chat message
+  const sendMessage = () => {
+    if (newMessage.trim() && roomId) {
+      const time = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      socket.emit('chat:send', {
+        room: roomId,
+        message: newMessage,
+        sender: userName,
+        time,
+      });
+      setNewMessage('');
+    }
+  };
+
+  const toggleChat = () => setShowChat(!showChat);
+  const toggleParticipants = () => setShowParticipants(!showParticipants);
 
     return () => {
       socket.off("user:joined", handleUserJoined);
@@ -225,6 +319,7 @@ const RoomPage = () => {
       socket.off("call:accepted", handleCallAccepted);
       socket.off("peer:nego:needed", handleNegoNeedIncomming);
       socket.off("peer:nego:final", handleNegoNeedFinal);
+      socket.off('call:end');
       //socket.off("call:end", handleCallEnd);
     }
   }, [socket, handleUserJoined, handleIncommingCall, handleCallAccepted,
@@ -240,10 +335,10 @@ const RoomPage = () => {
             <div className="text-white font-semibold text-lg">Video Chat</div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-green-400 text-sm">Connected</span>
-              <p className='text'>{remoteSocketId ? 'Connected' : 'No one in room'}</p>
+              <span className={`text-green-400 text-sm ${remoteSocketId ? 'Connected' : 'No one in room : Not Connected'}`}>Connected</span>
+              <p className='text'></p>
               <div >{
-                remoteSocketId && <button className="p-3 bg-red-500 hover:bg-red-600 rounded-full transition-all" onClick={handleCallUser}>Call</button>
+                remoteSocketId && <button className="p-2 bg-green-500 hover:bg-green-600 rounded-full transition-all" onClick={handleCallUser}>Accept the Incomming Call</button>
               }
               </div>
             </div>
@@ -276,19 +371,26 @@ const RoomPage = () => {
               {/* Local Video */}
               <div className="relative bg-gray-800 rounded-lg overflow-hidden group min-h-[200px] sm:min-h-[300px]">
                 <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center relative">
-                  {isVideoOff ? (
-                    <div className="text-center">
-                      <VideoOff size={48} className="text-white mx-auto mb-2" />
-                      <p className="text-white text-sm">Camera Off</p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center text-lg sm:text-2xl font-bold text-gray-800 mx-auto mb-2">
-                        Y
+                  
+                    {showPreview && (
+                      <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          muted
+                          playsInline
+                          className={`rounded-lg shadow-lg w-full max-w-md ${isVideoOn ? "" : "hidden"}`}
+                        />
+                        {!isVideoOn && (
+                          <div className="absolute text-center">
+                            <Camera size={48} className="text-white mx-auto mb-2 opacity-50" />
+                            <p className="text-white text-sm opacity-75">Camera Off</p>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-white text-sm sm:text-base">You</p>
-                    </div>
-                  )}
+                    )}
+                  
+
                 </div>
 
                 {/* Stream Label and Video Element */}

@@ -41,4 +41,17 @@ io.on("connection", (socket) => {
   // socket.on("call:end", ({ to }) => {
   //   io.to(to).emit("call:end", { from: socket.id });
   // });
+
+  socket.on("call:end", ({ to }) => {
+    io.to(to).emit("call:end", { from: socket.id });
+  });
+
+  socket.on("disconnect", () => {
+    const email = SocketidToEmailMap.get(socket.id);
+    if (email) {
+      emailToSocketMap.delete(email);
+      SocketidToEmailMap.delete(socket.id);
+      console.log(`User with socket id ${socket.id} disconnected`);
+    }
+  });
 });

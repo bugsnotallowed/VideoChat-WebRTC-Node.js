@@ -11,6 +11,14 @@ class PeerService {
           },
         ],
       });
+
+      // this.peer.onicecandidate = (event) => {
+      //   if (event.candidate) {
+      //     // Emit ICE candidate to signaling server
+      //     // Assuming socket is available in scope or passed as a parameter
+      //     socket.emit('ice:candidate', { to: remoteSocketId, candidate: event.candidate });
+      //   }
+      // };
     }
   }
 

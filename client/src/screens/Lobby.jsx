@@ -187,12 +187,6 @@ const Lobby = () => {
             <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold">Camera Preview</h3>
-                <button
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  {showPreview ? <Eye size={20} /> : <EyeOff size={20} />}
-                </button>
               </div>
 
               {showPreview && (
