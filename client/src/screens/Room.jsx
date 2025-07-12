@@ -14,10 +14,7 @@ import {
   Users,
   Settings,
   MoreVertical,
-  Grid3X3,
-  Maximize2,
   Volume2,
-  VolumeX,
   Camera
 } from 'lucide-react';
 
@@ -87,6 +84,7 @@ const RoomPage = () => {
 
   // Turn Off / On Camera
   const toggleVideo = () => {
+    
     setIsVideoOn(!isVideoOn)
     const newVideoState = !isVideoOff;
     setIsVideoOff(newVideoState);
@@ -176,22 +174,6 @@ const RoomPage = () => {
     [sendStreams]
   );
 
-  // const handleCallEnd = useCallback(
-  //   ({ from }) => {
-  //     console.log(`Call ended by user: ${from}`);
-  //     // Perform cleanup actions such as stopping streams, resetting UI, etc.
-  //     peer.close(); // Close the peer connection
-  //   },
-  //   [] // Add necessary dependencies
-  // );
-
-  // const endCall = () => {
-  //   const to = remoteStream; // Replace with the ID of the remote user
-  //   socket.emit("call:end", { to });
-  //   console.log("Call ended.");
-  //   // Perform cleanup for the local user
-  //   peer.close(); // Close the peer connection
-  // };
 
   const handleNegoNeeded = useCallback(async () => {
     const offer = await peer.getOffer();
@@ -394,7 +376,7 @@ const RoomPage = () => {
                 </div>
 
                 {/* Stream Label and Video Element */}
-                <div className="absolute inset-0">
+                <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-700 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                   {myStream && (
                     <>
                       <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
@@ -403,7 +385,7 @@ const RoomPage = () => {
                         </div>
                       </div>
 
-                      <ReactPlayer className="w-full h-full object-cover rounded-lg"
+                      <ReactPlayer className="rounded-lg shadow-lg w-full max-w-md "
                             playing
                             muted
                             playsInline
@@ -439,6 +421,9 @@ const RoomPage = () => {
 
                 {/* Remote Stream Label and Video Element */}
                 <div className="absolute inset-0">
+                  
+
+                <div className="aspect-video bg-gradient-to-br from-green-600 to-blue-700 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
                   {remoteStream && (
                     <>
                       <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
@@ -447,15 +432,20 @@ const RoomPage = () => {
                         </div>
                       </div>
 
-                      <ReactPlayer className="w-full h-full object-cover rounded-lg"
+                      
+
+                      <ReactPlayer className="rounded-lg shadow-lg w-full max-w-md h-[600px]"
                             playing
                             muted
                             playsInline
                             style={{ transform: 'scaleX(-1)' }}
                             url={remoteStream}
                           />
+                        
                     </>
+                    
                   )}
+                  </div>
                 </div>
 
                 <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center space-x-2 z-10">
