@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Lobby from "./screens/Lobby";
 import RoomPage from "./screens/Room";
+import EndScreen from "./screens/endScreen";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Lobby />} />
           <Route path="/room/:roomId" element={<RoomPage />} />
+          <Route path="/left" element={<EndScreen />} />
         </Routes>
       </div>
     </>

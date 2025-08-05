@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom';
 import ReactPlayer from 'react-player'
 import peer from '../service/peer'
 import { useSocket } from '../context/SocketProvider'
@@ -69,6 +70,7 @@ const RoomPage = () => {
     getMedia();
   }, []);
 
+  
   // Mute / Unmute Mic
   const toggleMic = () => {
     setIsMicOn(!isMicOn);
@@ -101,6 +103,8 @@ const RoomPage = () => {
   const toggleChat = () => setShowChat(!showChat);
   const toggleParticipants = () => setShowParticipants(!showParticipants);
 
+  const navigate = useNavigate();
+
   const endCall = () => {
     setIsConnected(false);
     if (localStreamRef.current) {
@@ -111,6 +115,8 @@ const RoomPage = () => {
     }
     socket.emit('call:end', { to: remoteSocketId });
     setRemoteStream(null);
+    
+    navigate(`/left`);
   };
 
   const sendMessage = () => {
