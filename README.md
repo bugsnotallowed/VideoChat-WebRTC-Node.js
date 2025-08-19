@@ -1,72 +1,172 @@
-<<<<<<< HEAD
+---
 
-# Getting Started with Create React App
+# 📹 One-to-One Video Chat Application with Messaging
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A real-time **video chat application** with a built-in **messaging feature**, built using **WebRTC**, **Socket.io**, **Node.js**, and **React**.
+The project enables two users to connect in a **private room**, allowing them to **video call, mute/unmute mic, enable/disable camera, and exchange text messages**.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🚀 Features
 
-### `npm start`
+* ✅ One-to-one **video call** using WebRTC
+* ✅ Real-time **text messaging** inside the same room
+* ✅ **Mute/Unmute microphone** & **Turn on/off video** controls
+* ✅ **Socket.io signaling server** for peer discovery & connection setup
+* ✅ **React Context** for managing Socket connection across components
+* ✅ Deployed on **Render (Backend)** & **Vercel (Frontend)**
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🏗️ Project Structure
 
-### `npm test`
+```
+video-chat-app/
+│
+├── client/        # React Frontend (Vercel)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── VideoPlayer.js     # Handles video/audio rendering
+│   │   │   ├── ChatBox.js         # Messaging UI & logic
+│   │   │   ├── Controls.js        # Mic/Video toggle buttons
+│   │   │
+│   │   ├── context/
+│   │   │   └── SocketProvider.js  # Global Socket.io context
+│   │   │
+│   │   ├── App.js                 # Main app entry, routes rooms
+│   │   └── index.js               # React entry point
+│   │
+│   └── package.json
+│
+├── server/        # Node.js Backend (Render)
+│   ├── index.js   # Socket.io signaling server
+│   └── package.json
+│
+└── README.md
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## ⚙️ How It Works
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. **Frontend (React)**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* `SocketProvider.js`
+  Wraps the app with a **Socket.io client instance**, connecting to backend (`Render` URL via `.env`).
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+* `VideoPlayer.js`
+  Uses **WebRTC `getUserMedia` API** to capture webcam & microphone stream.
+  Establishes **peer-to-peer connection** once the signaling is done via Socket.io.
 
-### `npm run eject`
+* `ChatBox.js`
+  Simple chat window where users exchange messages using **socket events**.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+* `Controls.js`
+  Buttons to **mute/unmute microphone** and **enable/disable camera** (toggling `MediaStreamTrack.enabled`).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 2. **Backend (Node.js + Socket.io)**
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+The backend acts as a **signaling server** (does not transmit video/audio, only coordinates connections).
 
-## Learn More
+* **Maps emails/users to socket IDs**
+* Handles events:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+  * `room:join` → When a user joins a room
+  * `user:joined` → Notifies all users in the room about new participant
+  * `signal` → Relays WebRTC offer/answer/ICE candidates between peers
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```js
+io.on("connection", (socket) => {
+  socket.on("room:join", (data) => {
+    const { email, name, room } = data;
+    socket.join(room);
+    io.to(room).emit("user:joined", { email, name, id: socket.id });
+  });
 
-### Code Splitting
+  socket.on("signal", ({ to, data }) => {
+    io.to(to).emit("signal", { from: socket.id, data });
+  });
+});
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+### 3. **WebRTC Flow**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. User A joins → requests camera & mic access
+2. User A emits `room:join` → server maps user to room
+3. User B joins same room → both discover each other
+4. Peers exchange **SDP Offer/Answer & ICE Candidates** via Socket.io
+5. Direct **peer-to-peer connection established** → video/audio streams flow directly
+6. Text messages exchanged over **Socket.io events**
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🛠️ Installation & Setup
 
-### Advanced Configuration
+### Backend (Server - Render)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+cd server
+npm install
+npm start
+```
 
-### Deployment
+* Runs on `http://localhost:8000` by default
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Frontend (Client - React - Vercel)
 
-### `npm run build` fails to minify
+```bash
+cd client
+npm install
+npm start
+```
 
-# This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+* Runs on `http://localhost:3000` by default
+
+---
+
+## 🌍 Deployment
+
+### Backend
+
+* Deployed on [Render](https://render.com/)
+* Add a **Start Command** in `package.json` → `"start": "node index.js"`
+
+### Frontend
+
+* Deployed on [Vercel](https://videochatappwebrtc.vercel.app/)
+* Add `.env` in client:
+
+  ```bash
+  REACT_APP_SOCKET_URL=https://your-render-backend.onrender.com
+  ```
+
+---
+
+## 📦 Tech Stack
+
+* **Frontend**: React, Context API, Socket.io-client, WebRTC
+* **Backend**: Node.js, Socket.io
+* **Deployment**: Render (server), Vercel (client)
+
+---
+
+## 🎯 Future Improvements
+
+* Group video calls (multi-user rooms)
+* Authentication & user profiles
+* Chat persistence with database (MongoDB/Postgres)
+* Screen sharing support
+
+---
+
+## 👨‍💻 Author
+
+Developed by **Adarsh Gupta** 🚀
+
+---
+
+👉 Would you like me to also add a **quick usage guide with screenshots/GIFs** (showing how two users connect in a room), so recruiters get a visual idea in your GitHub repo?
